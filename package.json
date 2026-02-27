@@ -1,0 +1,45 @@
+{
+  "name": "oneeleven-webhook-api",
+  "version": "1.0.0",
+  "description": "Production-grade webhook API for One Eleven developer challenge",
+  "main": "api/webhook.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "test": "jest --verbose",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "webhook",
+    "api",
+    "vercel",
+    "serverless",
+    "oneeleven"
+  ],
+  "author": "Vuyisile Lehola <vtlehola23@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express-validator": "^7.2.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@vercel/node": "^3.0.21",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  }
+}
