@@ -376,3 +376,85 @@ describe('POST /webhook - Edge Cases', () => {
     expect(res.body.word).toHaveLength(4);
   });
 });
+
+describe('POST /webhook - Enhanced Features', () => {
+  
+  test('should reject strings longer than 100,000 characters', async () => {
+    const veryLongString = 'a'.repeat(100001);
+    const req = new MockRequest('POST', { data: veryLongString });
+    const res = new MockResponse();
+
+    await webhookHandler(req, res);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toContain('exceed');
+    expect(res.body.message).toContain('100000');
+  });
+
+  test('should accept strings exactly at 100,000 characters', async () => {
+    const longString = 'a'.repeat(100000);
+    const req = new MockRequest('POST', { data: longString });
+    const res = new MockResponse();
+
+    await webhookHandler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.word).toHaveLength(100000);
+  });
+
+  test('should include security headers in response', async () => {
+    const req = new MockRequest('POST', { data: 'test' });
+    const res = new MockResponse();
+
+    await webhookHandler(req, res);
+
+    expect(res.headers['X-Content-Type-Options']).toBe('nosniff');
+    expect(res.headers['X-Frame-Options']).toBe('DENY');
+    expect(res.headers['X-XSS-Protection']).toBe('1; mode=block');
+    expect(res.headers['Strict-Transport-Security']).toContain('max-age');
+  });
+
+  test('should include rate limit headers in response', async () => {
+    const req = new MockRequest('POST', { data: 'test' });
+    req.headers = { 'x-forwarded-for': '192.168.1.1' };
+    const res = new MockResponse();
+
+    await webhookHandler(req, res);
+
+    expect(res.headers['X-RateLimit-Limit']).toBe('100');
+    expect(res.headers['X-RateLimit-Remaining']).toBeDefined();
+    expect(res.headers['X-RateLimit-Reset']).toBeDefined();
+  });
+
+  test('should return 429 after exceeding rate limit', async () => {
+    const ip = '192.168.100.100';
+    
+    // Send 101 requests from same IP
+    let lastResponse;
+    for (let i = 0; i < 101; i++) {
+      const req = new MockRequest('POST', { data: 'test' });
+      req.headers = { 'x-forwarded-for': ip };
+      const res = new MockResponse();
+      
+      await webhookHandler(req, res);
+      lastResponse = res;
+    }
+
+    // The 101st request should be rate limited
+    expect(lastResponse.statusCode).toBe(429);
+    expect(lastResponse.body.error).toBe('Too Many Requests');
+    expect(lastResponse.body.retryAfter).toBeDefined();
+  });
+
+  test('should track performance metrics', async () => {
+    const req = new MockRequest('POST', { data: 'test' });
+    const res = new MockResponse();
+
+    const startTime = Date.now();
+    await webhookHandler(req, res);
+    const endTime = Date.now();
+
+    expect(res.statusCode).toBe(200);
+    expect(endTime - startTime).toBeLessThan(100); // Should be very fast
+  });
+});
