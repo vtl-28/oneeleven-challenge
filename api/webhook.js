@@ -31,6 +31,14 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // Validate request body exists
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({ 
+        error: 'Bad Request',
+        message: 'Missing required field: "data"'
+      });
+    }
+
     // Extract data field from request body
     const { data } = req.body;
 
