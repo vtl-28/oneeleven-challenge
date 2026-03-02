@@ -29,41 +29,27 @@ class MockResponse {
     this.ended = false;
   }
 
-  /**
-   * Set HTTP status code
-   */
   status(code) {
     this.statusCode = code;
     return this;
   }
 
-  /**
-   * Send JSON response
-   */
   json(data) {
     this.body = data;
     return this;
   }
 
-  /**
-   * Set response header
-   */
   setHeader(key, value) {
     this.headers[key] = value;
     return this;
   }
 
-  /**
-   * End the response (for non-JSON responses)
-   */
+
   end() {
     this.ended = true;
     return this;
   }
 
-  /**
-   * Send plain text response
-   */
   send(data) {
     this.body = data;
     return this;

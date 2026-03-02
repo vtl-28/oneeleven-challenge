@@ -1,8 +1,3 @@
-/**
- * Webhook API Unit Tests
- * Comprehensive test coverage for the webhook endpoint
- */
-
 const webhookHandler = require('../api/webhook');
 const { MockRequest, MockResponse } = require('./testHelper');
 
@@ -67,7 +62,6 @@ describe('POST /webhook - Core Functionality', () => {
     await webhookHandler(req, res);
 
     expect(res.statusCode).toBe(200);
-    // ASCII: A=65, B=66, C=67, a=97, b=98, c=99
     expect(res.body.word).toEqual(['A', 'B', 'C', 'a', 'b', 'c']);
   });
 
@@ -126,9 +120,9 @@ describe('POST /webhook - Core Functionality', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.word).toHaveLength(1000);
-    expect(res.body.word[0]).toBe('a'); // First char should be 'a'
-    expect(res.body.word[999]).toBe('z'); // Last char should be 'z'
-    expect(duration).toBeLessThan(1000); // Should complete in <1 second
+    expect(res.body.word[0]).toBe('a');
+    expect(res.body.word[999]).toBe('z');
+    expect(duration).toBeLessThan(1000);
   });
 
   test('should handle all same characters', async () => {
@@ -193,7 +187,7 @@ describe('POST /webhook - Input Validation', () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toContain('string');
-    expect(res.body.message).toContain('object'); // Arrays are typeof 'object'
+    expect(res.body.message).toContain('object');
   });
 
   test('should return 400 when data is an object', async () => {
@@ -343,7 +337,7 @@ describe('POST /webhook - Edge Cases', () => {
     await webhookHandler(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.word).toHaveLength(5); // a, \n, b, \t, c
+    expect(res.body.word).toHaveLength(5);
   });
 
   test('should handle mixed case letters', async () => {
@@ -353,7 +347,7 @@ describe('POST /webhook - Edge Cases', () => {
     await webhookHandler(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.word[0]).toBe('H'); // Uppercase H comes first in ASCII
+    expect(res.body.word[0]).toBe('H');
   });
 
   test('should handle palindrome strings', async () => {
@@ -430,7 +424,7 @@ describe('POST /webhook - Security Headers', () => {
   });
 
   test('should include security headers even on error responses', async () => {
-    const req = new MockRequest('POST', {});  // Missing data - will cause 400
+    const req = new MockRequest('POST', {});
     const res = new MockResponse();
 
     await webhookHandler(req, res);
@@ -474,39 +468,33 @@ describe('POST /webhook - Rate Limit Headers', () => {
 
     expect(res.headers['X-RateLimit-Reset']).toBeDefined();
     
-    // Should be a valid ISO timestamp
     const resetTime = new Date(res.headers['X-RateLimit-Reset']);
     expect(resetTime.toString()).not.toBe('Invalid Date');
     
-    // Reset time should be in the future
     expect(resetTime.getTime()).toBeGreaterThan(Date.now());
   });
 
   test('should decrement remaining count with each request', async () => {
     const ip = '10.0.1.100';
     
-    // First request
     const req1 = new MockRequest('POST', { data: 'test' });
     req1.headers = { 'x-forwarded-for': ip };
     const res1 = new MockResponse();
     await webhookHandler(req1, res1);
     const remaining1 = parseInt(res1.headers['X-RateLimit-Remaining']);
 
-    // Second request
     const req2 = new MockRequest('POST', { data: 'test' });
     req2.headers = { 'x-forwarded-for': ip };
     const res2 = new MockResponse();
     await webhookHandler(req2, res2);
     const remaining2 = parseInt(res2.headers['X-RateLimit-Remaining']);
 
-    // Third request
     const req3 = new MockRequest('POST', { data: 'test' });
     req3.headers = { 'x-forwarded-for': ip };
     const res3 = new MockResponse();
     await webhookHandler(req3, res3);
     const remaining3 = parseInt(res3.headers['X-RateLimit-Remaining']);
 
-    // Each request should decrease remaining count
     expect(remaining2).toBe(remaining1 - 1);
     expect(remaining3).toBe(remaining2 - 1);
   });
@@ -517,7 +505,6 @@ describe('POST /webhook - Rate Limiting Enforcement', () => {
   test('should allow first 100 requests from same IP', async () => {
     const ip = '10.1.1.1';
     
-    // Send exactly 100 requests
     for (let i = 0; i < 100; i++) {
       const req = new MockRequest('POST', { data: 'test' });
       req.headers = { 'x-forwarded-for': ip };
@@ -533,7 +520,6 @@ describe('POST /webhook - Rate Limiting Enforcement', () => {
   test('should return 429 on 101st request from same IP', async () => {
     const ip = '10.1.1.2';
     
-    // Send 101 requests
     let lastResponse;
     for (let i = 0; i < 101; i++) {
       const req = new MockRequest('POST', { data: 'test' });
@@ -544,7 +530,6 @@ describe('POST /webhook - Rate Limiting Enforcement', () => {
       lastResponse = res;
     }
 
-    // The 101st request should be rate limited
     expect(lastResponse.statusCode).toBe(429);
     expect(lastResponse.body.error).toBe('Too Many Requests');
   });
@@ -552,7 +537,6 @@ describe('POST /webhook - Rate Limiting Enforcement', () => {
   test('should include retryAfter in 429 response', async () => {
     const ip = '10.1.1.3';
     
-    // Exceed rate limit
     for (let i = 0; i < 101; i++) {
       const req = new MockRequest('POST', { data: 'test' });
       req.headers = { 'x-forwarded-for': ip };
@@ -563,7 +547,6 @@ describe('POST /webhook - Rate Limiting Enforcement', () => {
       if (res.statusCode === 429) {
         expect(res.body.retryAfter).toBeDefined();
         
-        // retryAfter should be a future timestamp
         const retryTime = new Date(res.body.retryAfter);
         expect(retryTime.getTime()).toBeGreaterThan(Date.now());
       }
@@ -574,7 +557,6 @@ describe('POST /webhook - Rate Limiting Enforcement', () => {
     const ip1 = '10.2.1.1';
     const ip2 = '10.2.1.2';
     
-    // Send 100 requests from IP1
     for (let i = 0; i < 100; i++) {
       const req = new MockRequest('POST', { data: 'test' });
       req.headers = { 'x-forwarded-for': ip1 };
@@ -583,7 +565,6 @@ describe('POST /webhook - Rate Limiting Enforcement', () => {
       expect(res.statusCode).toBe(200);
     }
 
-    // IP2 should still have full quota
     const req = new MockRequest('POST', { data: 'test' });
     req.headers = { 'x-forwarded-for': ip2 };
     const res = new MockResponse();
@@ -595,7 +576,6 @@ describe('POST /webhook - Rate Limiting Enforcement', () => {
 
   test('should handle requests without IP address', async () => {
     const req = new MockRequest('POST', { data: 'test' });
-    // No IP headers set - should default to 'unknown'
     const res = new MockResponse();
 
     await webhookHandler(req, res);
@@ -655,7 +635,7 @@ describe('POST /webhook - Performance Tracking', () => {
     const duration = endTime - startTime;
 
     expect(res.statusCode).toBe(200);
-    expect(duration).toBeLessThan(100); // Should complete in <100ms
+    expect(duration).toBeLessThan(100)
   });
 
   test('should handle 1000 character string efficiently', async () => {
@@ -668,6 +648,6 @@ describe('POST /webhook - Performance Tracking', () => {
     const duration = endTime - startTime;
 
     expect(res.statusCode).toBe(200);
-    expect(duration).toBeLessThan(200); // Should complete in <200ms
+    expect(duration).toBeLessThan(200);
   });
 });

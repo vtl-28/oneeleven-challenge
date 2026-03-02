@@ -1,15 +1,7 @@
-/**
- * API Documentation Endpoint
- * Returns information about available endpoints and usage
- * 
- * GET /
- */
-
 module.exports = (req, res) => {
-  // Set CORS headers
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   
-  // Return API documentation
   res.status(200).json({
     message: 'One Eleven Developer Challenge - Webhook API',
     version: '1.0.0',
